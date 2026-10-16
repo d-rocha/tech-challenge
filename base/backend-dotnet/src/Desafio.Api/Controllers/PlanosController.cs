@@ -7,6 +7,7 @@ namespace Desafio.Api.Controllers;
 [ApiController]
 [Route("planos")]
 [Produces("application/json")]
+[ProducesResponseType<ErroResponse>(StatusCodes.Status500InternalServerError)]
 public class PlanosController(PlanoServico servico) : ControllerBase
 {
     [HttpGet]

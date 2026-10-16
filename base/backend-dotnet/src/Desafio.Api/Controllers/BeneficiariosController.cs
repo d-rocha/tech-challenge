@@ -7,6 +7,7 @@ namespace Desafio.Api.Controllers;
 [ApiController]
 [Route("beneficiarios")]
 [Produces("application/json")]
+[ProducesResponseType<ErroResponse>(StatusCodes.Status500InternalServerError)]
 public class BeneficiariosController : ControllerBase
 {
     private readonly BeneficiarioServico _servico;

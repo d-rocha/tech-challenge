@@ -1,5 +1,6 @@
 using Desafio.Api.Api.Contratos;
 using Desafio.Api.Api.Middlewares;
+using Desafio.Api.Api.OpenApi;
 using Desafio.Api.Aplicacao;
 using Desafio.Api.Dominio;
 using Desafio.Api.Infraestrutura;
@@ -46,10 +47,12 @@ builder.Services.Configure<ApiBehaviorOptions>(opcoes =>
 });
 
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(opcoes =>
+    opcoes.OperationFilter<ContratosOperationFilter>());
 
 var app = builder.Build();
 
+app.UseMiddleware<RegistroDeRequisicaoMiddleware>();
 app.UseMiddleware<TratamentoDeErroMiddleware>();
 
 app.UseCors(PoliticaDaWeb);

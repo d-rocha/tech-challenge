@@ -21,23 +21,23 @@ public abstract class ExcecaoDeDominio : Exception
 public sealed class ValidacaoException(string mensagem, IReadOnlyList<DetalheErro>? detalhes = null)
     : ExcecaoDeDominio("ValidacaoInvalida", mensagem, detalhes)
 {
-    public override int StatusCode => StatusCodes.Status400BadRequest;
+    public override int StatusCode => 400;
 }
 
 public sealed class NaoEncontradoException(string mensagem)
     : ExcecaoDeDominio("NaoEncontrado", mensagem, null)
 {
-    public override int StatusCode => StatusCodes.Status404NotFound;
+    public override int StatusCode => 404;
 }
 
 public sealed class ConflitoException(string mensagem, IReadOnlyList<DetalheErro>? detalhes = null)
     : ExcecaoDeDominio("Conflito", mensagem, detalhes)
 {
-    public override int StatusCode => StatusCodes.Status409Conflict;
+    public override int StatusCode => 409;
 }
 
 public sealed class NaoProcessavelException(string mensagem, IReadOnlyList<DetalheErro>? detalhes = null)
     : ExcecaoDeDominio("NaoProcessavel", mensagem, detalhes)
 {
-    public override int StatusCode => StatusCodes.Status422UnprocessableEntity;
+    public override int StatusCode => 422;
 }
