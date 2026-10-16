@@ -1,4 +1,5 @@
-using Desafio.Api.Dominio;
+using Desafio.Api.Api.Contratos;
+using Desafio.Api.Aplicacao;
 using Desafio.Api.Infraestrutura;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
@@ -11,34 +12,26 @@ namespace Desafio.Api.Controllers;
 public class BeneficiariosController : ControllerBase
 {
     private readonly AppDbContext _db;
+    private readonly BeneficiarioServico _servico;
 
-    public BeneficiariosController(AppDbContext db)
+    public BeneficiariosController(AppDbContext db, BeneficiarioServico servico)
     {
         _db = db;
+        _servico = servico;
     }
 
     [HttpPost]
-    public async Task<IActionResult> Criar([FromBody] Beneficiario beneficiario)
+    [ProducesResponseType<BeneficiarioResponse>(StatusCodes.Status201Created)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Criar([FromBody] BeneficiarioRequest requisicao, CancellationToken cancellationToken)
     {
-        if (beneficiario.Cpf.Length == 11)
-        {
-            // Mesmo modelo do PlanoServico: a garantia de unicidade é o índice único da
-            // tabela, e esta consulta prévia existe só para recusar o pedido antes de ele
-            // chegar no banco.
-            var existe = _db.Beneficiarios.Any(b => b.Cpf == beneficiario.Cpf);
+        var dados = new BeneficiarioRequestDados(
+            requisicao.NomeCompleto, requisicao.Cpf, requisicao.DataNascimento, requisicao.PlanoId);
+        var beneficiario = await _servico.CriarAsync(dados, cancellationToken);
 
-            if (!existe)
-            {
-                _db.Beneficiarios.Add(beneficiario);
-                await _db.SaveChangesAsync();
-
-                return Ok(beneficiario);
-            }
-
-            return BadRequest("CPF ja cadastrado");
-        }
-
-        return BadRequest("CPF invalido");
+        return Created($"/beneficiarios/{beneficiario.Id}", BeneficiarioResponse.De(beneficiario));
     }
 
     [HttpGet]
