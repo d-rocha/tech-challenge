@@ -1,6 +1,7 @@
 using Desafio.Api.Dominio;
 using Desafio.Api.Infraestrutura;
 using Microsoft.EntityFrameworkCore;
+using Npgsql;
 
 namespace Desafio.Api.Aplicacao;
 
@@ -33,7 +34,19 @@ public class BeneficiarioServico(AppDbContext db)
         }
 
         db.Beneficiarios.Add(beneficiario);
-        await db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException excecao) when (
+            excecao.InnerException is PostgresException postgres &&
+            postgres.SqlState == PostgresErrorCodes.UniqueViolation &&
+            postgres.ConstraintName == AppDbContext.IndiceCpfUnico)
+        {
+            throw new ConflitoException(
+                "Já existe beneficiário cadastrado com esse CPF",
+                [new DetalheErro("cpf", "duplicado")]);
+        }
 
         return beneficiario;
     }

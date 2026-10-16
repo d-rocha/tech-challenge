@@ -54,6 +54,10 @@ namespace Desafio.Api.Infraestrutura.Migrations
 
                     b.HasKey("Id");
 
+                    b.HasIndex("Cpf")
+                        .IsUnique()
+                        .HasDatabaseName("IX_Beneficiarios_Cpf");
+
                     b.HasIndex("PlanoId");
 
                     b.ToTable("Beneficiarios");

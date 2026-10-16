@@ -3,6 +3,7 @@ using Desafio.Api.Infraestrutura;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Diagnostics;
 using Microsoft.Extensions.DependencyInjection;
 using Testcontainers.PostgreSql;
 
@@ -61,6 +62,15 @@ public sealed class ApiFixture : IAsyncLifetime
 
         await acao(db);
     }
+
+    public WebApplicationFactory<Program> CriarApiComInterceptor(IInterceptor interceptor) =>
+        new WebApplicationFactory<Program>()
+            .WithWebHostBuilder(builder =>
+            {
+                builder.UseSetting("ConnectionStrings:Postgres", _postgres.GetConnectionString());
+                builder.ConfigureServices(services =>
+                    services.AddDbContext<AppDbContext>(opcoes => opcoes.AddInterceptors(interceptor)));
+            });
 
     /// <summary>
     /// Devolve o banco ao estado da carga inicial: sem beneficiários, apenas os cinco planos
