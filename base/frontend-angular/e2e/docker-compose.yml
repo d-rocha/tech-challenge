@@ -1,0 +1,44 @@
+# All resources belong to one random runner project; no development ports or volumes.
+services:
+  postgres:
+    image: postgres:17-alpine
+    labels:
+      nxt.e2e.owner: ${E2E_OWNER:?runner ownership required}
+    environment:
+      POSTGRES_DB: desafio
+      POSTGRES_USER: desafio
+      POSTGRES_PASSWORD: desafio
+    volumes:
+      - database:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U desafio -d desafio"]
+      interval: 1s
+      timeout: 3s
+      retries: 60
+  api:
+    build: ../../backend-dotnet
+    labels:
+      nxt.e2e.owner: ${E2E_OWNER:?runner ownership required}
+    ports:
+      - "127.0.0.1:${E2E_API_PORT:?runner port required}:8080"
+    environment:
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=desafio;Username=desafio;Password=desafio"
+    depends_on:
+      postgres:
+        condition: service_healthy
+  web:
+    build: ..
+    labels:
+      nxt.e2e.owner: ${E2E_OWNER:?runner ownership required}
+    ports:
+      - "127.0.0.1:${E2E_WEB_PORT:?runner port required}:80"
+    depends_on:
+      - api
+volumes:
+  database:
+    labels:
+      nxt.e2e.owner: ${E2E_OWNER:?runner ownership required}
+networks:
+  default:
+    labels:
+      nxt.e2e.owner: ${E2E_OWNER:?runner ownership required}
