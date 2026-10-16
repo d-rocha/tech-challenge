@@ -8,6 +8,12 @@ public sealed record BeneficiarioRequest(
     DateOnly? DataNascimento,
     Guid? PlanoId);
 
+public sealed record BeneficiarioAtualizacaoRequest(
+    string? NomeCompleto,
+    DateOnly? DataNascimento,
+    Guid? PlanoId,
+    string? Status);
+
 public sealed record BeneficiarioResponse(
     Guid Id,
     string NomeCompleto,

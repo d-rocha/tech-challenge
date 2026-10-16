@@ -34,6 +34,45 @@ public class BeneficiariosController : ControllerBase
         return Created($"/beneficiarios/{beneficiario.Id}", BeneficiarioResponse.De(beneficiario));
     }
 
+    [HttpGet("{id:guid}")]
+    [ProducesResponseType<BeneficiarioResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status404NotFound)]
+    public async Task<IActionResult> Obter(Guid id, CancellationToken cancellationToken)
+    {
+        var beneficiario = await _servico.ObterAsync(id, cancellationToken);
+
+        return Ok(BeneficiarioResponse.De(beneficiario));
+    }
+
+    [HttpPut("{id:guid}")]
+    [ProducesResponseType<BeneficiarioResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status400BadRequest)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status409Conflict)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status422UnprocessableEntity)]
+    public async Task<IActionResult> Atualizar(
+        Guid id,
+        [FromBody] BeneficiarioAtualizacaoRequest requisicao,
+        CancellationToken cancellationToken)
+    {
+        var dados = new BeneficiarioAtualizacaoDados(
+            requisicao.NomeCompleto, requisicao.DataNascimento, requisicao.PlanoId, requisicao.Status);
+        var beneficiario = await _servico.AtualizarAsync(id, dados, cancellationToken);
+
+        return Ok(BeneficiarioResponse.De(beneficiario));
+    }
+
+    [HttpDelete("{id:guid}")]
+    [ProducesResponseType(StatusCodes.Status204NoContent)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status404NotFound)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status409Conflict)]
+    public async Task<IActionResult> Excluir(Guid id, CancellationToken cancellationToken)
+    {
+        await _servico.ExcluirAsync(id, cancellationToken);
+
+        return NoContent();
+    }
+
     [HttpGet]
     public async Task<IActionResult> Listar()
     {

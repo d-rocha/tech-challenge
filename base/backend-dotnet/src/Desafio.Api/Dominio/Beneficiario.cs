@@ -80,6 +80,69 @@ public class Beneficiario
 
     public DateTime DataCadastro { get; private set; }
 
+    public DateTime? ExcluidoEm { get; private set; }
+
+    public void ValidarAtualizacao(string? nomeCompleto, DateOnly? dataNascimento, Guid? planoId, string? status)
+    {
+        nomeCompleto = nomeCompleto?.Trim() ?? string.Empty;
+        var detalhes = new List<DetalheErro>();
+
+        if (nomeCompleto.Length == 0)
+        {
+            detalhes.Add(new DetalheErro("nome_completo", "obrigatorio"));
+        }
+        else if (nomeCompleto.Length is < 3 or > 120)
+        {
+            detalhes.Add(new DetalheErro("nome_completo", "tamanho_invalido"));
+        }
+
+        if (dataNascimento is null)
+        {
+            detalhes.Add(new DetalheErro("data_nascimento", "obrigatorio"));
+        }
+        else if (dataNascimento.Value >= DateOnly.FromDateTime(DateTime.UtcNow))
+        {
+            detalhes.Add(new DetalheErro("data_nascimento", "deve_ser_passada"));
+        }
+
+        if (planoId is null || planoId == Guid.Empty)
+        {
+            detalhes.Add(new DetalheErro("plano_id", "obrigatorio"));
+        }
+
+        if (string.IsNullOrEmpty(status))
+        {
+            detalhes.Add(new DetalheErro("status", "obrigatorio"));
+        }
+        else if (status is not ("ATIVO" or "INATIVO"))
+        {
+            detalhes.Add(new DetalheErro("status", "invalido"));
+        }
+
+        if (detalhes.Count > 0)
+        {
+            throw new ValidacaoException("Dados do beneficiário inválidos", detalhes);
+        }
+
+        if (Status == StatusBeneficiario.INATIVO &&
+            (NomeCompleto != nomeCompleto || DataNascimento != dataNascimento || PlanoId != planoId))
+        {
+            throw new ConflitoException("Dados cadastrais de beneficiário inativo não podem ser alterados");
+        }
+    }
+
+    public void Atualizar(string? nomeCompleto, DateOnly? dataNascimento, Guid? planoId, string? status)
+    {
+        ValidarAtualizacao(nomeCompleto, dataNascimento, planoId, status);
+
+        NomeCompleto = nomeCompleto!.Trim();
+        DataNascimento = dataNascimento!.Value;
+        PlanoId = planoId!.Value;
+        Status = status == "ATIVO" ? StatusBeneficiario.ATIVO : StatusBeneficiario.INATIVO;
+    }
+
+    public void Excluir() => ExcluidoEm = DateTime.UtcNow;
+
     private static bool CpfValido(string cpf)
     {
         if (cpf.Length != 11 || cpf.Any(caractere => caractere is < '0' or > '9'))
