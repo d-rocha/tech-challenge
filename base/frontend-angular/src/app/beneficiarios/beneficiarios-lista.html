@@ -1,0 +1,95 @@
+<section class="cartao" aria-labelledby="titulo-beneficiarios">
+  <header class="cabecalho">
+    <h2 id="titulo-beneficiarios">Beneficiários</h2>
+    <button type="button" (click)="recarregar()" [disabled]="carregando()">
+      Recarregar beneficiários
+    </button>
+  </header>
+
+  <div class="filtros">
+    <div class="campo">
+      <label for="filtro-status">Situação</label>
+      <select id="filtro-status" #status [value]="consulta().status ?? ''"
+        (change)="filtrarStatus(status.value)">
+        <option value="">Todas as situações</option>
+        <option value="ATIVO">ATIVO</option>
+        <option value="INATIVO">INATIVO</option>
+      </select>
+    </div>
+    <div class="campo">
+      <label for="filtro-plano">Plano</label>
+      <select id="filtro-plano" #plano [value]="consulta().plano_id ?? ''"
+        [disabled]="carregandoPlanos()" (change)="filtrarPlano(plano.value)">
+        <option value="">Todos os planos</option>
+        @for (opcao of planos(); track opcao.id) {
+          <option [value]="opcao.id">{{ opcao.nome }}</option>
+        }
+      </select>
+    </div>
+    <div class="campo">
+      <label for="tamanho-pagina">Itens por página</label>
+      <select id="tamanho-pagina" #tamanho [value]="consulta().tamanho"
+        (change)="mudarTamanho(tamanho.value)">
+        <option value="10">10</option>
+        <option value="25">25</option>
+        <option value="50">50</option>
+        <option value="100">100</option>
+      </select>
+    </div>
+    <button type="button" (click)="limparFiltros()">Limpar filtros</button>
+  </div>
+
+  @if (carregandoPlanos()) {
+    <p class="aviso" role="status">Carregando planos do filtro...</p>
+  } @else if (erroPlanos()) {
+    <div class="falha-planos">
+      <p class="aviso erro" role="alert">{{ erroPlanos() }}</p>
+      <button type="button" (click)="recarregarPlanos()">Recarregar planos do filtro</button>
+    </div>
+  }
+
+  @if (carregando()) {
+    <p class="aviso" role="status">Carregando beneficiários...</p>
+  } @else if (erro()) {
+    <p class="aviso erro" role="alert">{{ erro() }}</p>
+  } @else {
+    @if (beneficiarios().length === 0) {
+      <p class="aviso">Nenhum beneficiário encontrado.</p>
+    } @else {
+      <div class="tabela" tabindex="0" role="region" aria-label="Lista de beneficiários">
+        <table>
+          <thead>
+            <tr>
+              <th scope="col">Nome completo</th>
+              <th scope="col">CPF</th>
+              <th scope="col">Data de nascimento</th>
+              <th scope="col">Situação</th>
+              <th scope="col">Plano</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (beneficiario of beneficiarios(); track beneficiario.id) {
+              <tr>
+                <td>{{ beneficiario.nome_completo }}</td>
+                <td>{{ beneficiario.cpf }}</td>
+                <td>{{ formatarNascimento(beneficiario.data_nascimento) }}</td>
+                <td>{{ beneficiario.status }}</td>
+                <td>{{ beneficiario.plano_nome }}</td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    }
+    <p class="resumo" aria-live="polite">
+      Total: {{ total() }} · Página {{ consulta().pagina }} de {{ totalPaginas() }}
+    </p>
+  }
+
+  <nav class="paginacao" aria-label="Paginação de beneficiários">
+    <button type="button" (click)="navegar(-1)"
+      [disabled]="carregando() || !!erro() || consulta().pagina <= 1">Anterior</button>
+    <button type="button" (click)="navegar(1)"
+      [disabled]="carregando() || !!erro() || consulta().pagina >= totalPaginas()">Próxima</button>
+  </nav>
+</section>

@@ -1,0 +1,133 @@
+:host {
+  display: block;
+  min-width: 0;
+}
+
+.cartao {
+  background: #fff;
+  border: 1px solid #dcdfe4;
+  border-radius: 8px;
+  padding: 1.25rem 1.5rem;
+  min-width: 0;
+}
+
+.cabecalho,
+.paginacao,
+.falha-planos {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+.cabecalho {
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+h2 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.filtros {
+  display: flex;
+  align-items: end;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+}
+
+.campo {
+  display: grid;
+  gap: 0.3rem;
+  flex: 1 1 150px;
+  min-width: 0;
+}
+
+button,
+select {
+  border: 1px solid #c3c8d0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  font: inherit;
+  color: inherit;
+  min-height: 44px;
+  max-width: 100%;
+}
+
+select {
+  width: 100%;
+  background: #fff;
+}
+
+button {
+  background: #f6f7f9;
+  cursor: pointer;
+}
+
+button:disabled,
+select:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+button:focus-visible,
+select:focus-visible,
+.tabela:focus-visible {
+  outline: 2px solid #1d4ed8;
+  outline-offset: 2px;
+}
+
+.tabela {
+  overflow-x: auto;
+  max-width: 100%;
+}
+
+table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.55rem 0.5rem;
+  border-bottom: 1px solid #eceef1;
+}
+
+td {
+  overflow-wrap: anywhere;
+}
+
+th {
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #4b5563;
+}
+
+.aviso,
+.resumo {
+  color: #4b5563;
+  margin: 0.75rem 0;
+}
+
+.erro {
+  color: #b42318;
+}
+
+.paginacao {
+  margin-top: 1rem;
+}
+
+@media (max-width: 480px) {
+  .cartao {
+    padding: 1rem;
+  }
+
+  .campo {
+    flex-basis: 100%;
+  }
+}

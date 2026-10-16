@@ -16,28 +16,3 @@ main {
   display: grid;
   gap: 1.25rem;
 }
-
-.cartao.pendente {
-  background: #fff;
-  border: 1px dashed #c3c8d0;
-  border-radius: 8px;
-  padding: 1.25rem 1.5rem;
-  color: #4b5563;
-}
-
-.cartao.pendente h2 {
-  margin: 0 0 0.75rem;
-  font-size: 1.1rem;
-  color: #111827;
-}
-
-.cartao.pendente p {
-  margin: 0 0 0.5rem;
-  line-height: 1.5;
-}
-
-code {
-  background: #f3f4f6;
-  border-radius: 4px;
-  padding: 0.1rem 0.3rem;
-}
