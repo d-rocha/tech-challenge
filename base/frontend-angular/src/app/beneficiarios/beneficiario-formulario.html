@@ -1,0 +1,80 @@
+<section class="formulario" aria-labelledby="titulo-formulario" [attr.aria-busy]="salvando()">
+  <h3 id="titulo-formulario">{{ beneficiario ? 'Editar beneficiário' : 'Novo beneficiário' }}</h3>
+  @if (congelado) {
+    <p>Os dados cadastrais estão congelados. Reative e abra a edição novamente para alterá-los.</p>
+  }
+  @if (carregandoPlanos()) {
+    <p role="status">Carregando planos do formulário...</p>
+  } @else if (erroPlanos()) {
+    <p class="erro" role="alert">{{ erroPlanos() }}</p>
+    <button type="button" (click)="recarregarPlanos()" [disabled]="salvando()">Recarregar planos do formulário</button>
+  } @else if (planoHistorico()) {
+    <p id="aviso-plano">
+      O plano atual está excluído ou indisponível.
+      @if (congelado) {
+        A reativação fica bloqueada: os dados estão congelados e o plano não pode ser substituído nesta atualização.
+      } @else {
+        Escolha um plano disponível para atualizar o cadastro.
+      }
+    </p>
+  }
+  <form [formGroup]="formulario" (ngSubmit)="salvar()" novalidate>
+    <div class="campos">
+      <div class="campo">
+        <label for="beneficiario-nome">Nome completo</label>
+        <input id="beneficiario-nome" formControlName="nome_completo" autocomplete="name" aria-describedby="erro-nome" required>
+        @if (formulario.controls.nome_completo.touched && formulario.controls.nome_completo.invalid) {
+          <span id="erro-nome" class="erro">Informe o nome completo obrigatório.</span>
+        }
+      </div>
+      <div class="campo">
+        <label for="beneficiario-cpf">CPF</label>
+        <input id="beneficiario-cpf" formControlName="cpf" inputmode="numeric" [readOnly]="!!beneficiario" aria-describedby="erro-cpf" required>
+        @if (formulario.controls.cpf.touched && formulario.controls.cpf.invalid) {
+          <span id="erro-cpf" class="erro">Informe o CPF com exatamente 11 dígitos, sem máscara.</span>
+        }
+      </div>
+      <div class="campo">
+        <label for="beneficiario-nascimento">Data de nascimento</label>
+        <input id="beneficiario-nascimento" type="date" formControlName="data_nascimento" autocomplete="bday" aria-describedby="erro-nascimento" required>
+        @if (formulario.controls.data_nascimento.touched && formulario.controls.data_nascimento.invalid) {
+          <span id="erro-nascimento" class="erro">Informe uma data válida anterior a hoje (UTC).</span>
+        }
+      </div>
+      <div class="campo">
+        <label for="beneficiario-plano">Plano do beneficiário</label>
+        <select id="beneficiario-plano" formControlName="plano_id" aria-describedby="erro-plano" required>
+          <option value="">Selecione um plano</option>
+          @if (planoHistorico() && beneficiario) {
+            <option [value]="beneficiario.plano_id">{{ nomePlano }} (plano indisponível)</option>
+          }
+          @for (plano of planos(); track plano.id) {
+            <option [value]="plano.id">{{ plano.nome }}</option>
+          }
+        </select>
+        @if (formulario.controls.plano_id.touched && formulario.controls.plano_id.invalid) {
+          <span id="erro-plano" class="erro">Informe o plano obrigatório.</span>
+        }
+      </div>
+      @if (beneficiario) {
+        <div class="campo">
+          <label for="beneficiario-status">Situação do beneficiário</label>
+          <select id="beneficiario-status" formControlName="status" required>
+            <option value="ATIVO">ATIVO</option>
+            <option value="INATIVO">INATIVO</option>
+          </select>
+        </div>
+      }
+    </div>
+    @if (erro()) {
+      <p class="erro" role="alert">{{ erro() }}</p>
+    }
+    @if (salvando()) {
+      <p role="status">Salvando beneficiário...</p>
+    }
+    <div class="acoes">
+      <button type="submit" [disabled]="salvando() || carregandoPlanos() || !!erroPlanos()">Salvar</button>
+      <button type="button" (click)="cancelar()" [disabled]="salvando()">Cancelar</button>
+    </div>
+  </form>
+</section>

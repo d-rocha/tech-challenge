@@ -1,0 +1,14 @@
+:host { display: block; min-width: 0; }
+.formulario { border: 1px solid #c3c8d0; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+h3 { margin-top: 0; }
+.campos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr)); gap: 1rem; }
+.campo { display: grid; gap: 0.3rem; min-width: 0; align-content: start; }
+input, select, button { box-sizing: border-box; border: 1px solid #c3c8d0; border-radius: 6px; padding: 0.5rem 0.75rem; font: inherit; color: inherit; min-height: 44px; max-width: 100%; }
+input, select { width: 100%; background: #fff; }
+button { background: #f6f7f9; cursor: pointer; }
+input:disabled, select:disabled, input:read-only { background: #f0f1f3; }
+button:disabled { opacity: 0.5; cursor: default; }
+input:focus-visible, select:focus-visible, button:focus-visible { outline: 2px solid #1d4ed8; outline-offset: 2px; }
+.acoes { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1rem; }
+.erro { color: #b42318; }
+p, .erro { overflow-wrap: anywhere; }

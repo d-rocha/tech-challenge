@@ -41,4 +41,19 @@ describe('BeneficiarioServico', () => {
     } });
     http.expectOne(r => r.url === '/api/beneficiarios').flush({ mensagem: 'Filtro inválido', detalhes: [] }, { status: 400, statusText: 'Erro' });
   });
+  it('obtem detalhe por id sem depender do nome exclusivo da listagem', () => {
+    const detalhe = { id: 'id-a', nome_completo: 'Pessoa', cpf: '52998224725', data_nascimento: '1990-12-23', status: 'ATIVO' as const, plano_id: 'plano-a', data_cadastro: '2026-01-01T00:00:00Z' };
+    servico.obter('id-a').subscribe(valor => expect(valor).toEqual(detalhe));
+    const req = http.expectOne('/api/beneficiarios/id-a'); expect(req.request.method).toBe('GET'); req.flush(detalhe);
+  });
+  it('envia contratos separados de criacao atualizacao e exclusao', () => {
+    const cadastro = { nome_completo: 'Pessoa', cpf: '52998224725', data_nascimento: '1990-12-23', plano_id: 'plano-a' };
+    servico.criar(cadastro).subscribe();
+    const post = http.expectOne('/api/beneficiarios'); expect(post.request.method).toBe('POST'); expect(post.request.body).toEqual(cadastro); post.flush({ id: 'id-a', ...cadastro });
+    const edicao = { nome_completo: 'Pessoa Editada', data_nascimento: '1990-12-23', plano_id: 'plano-a', status: 'INATIVO' as const };
+    servico.atualizar('id-a', edicao).subscribe();
+    const put = http.expectOne('/api/beneficiarios/id-a'); expect(put.request.method).toBe('PUT'); expect(put.request.body).toEqual(edicao); put.flush({ id: 'id-a', ...edicao });
+    servico.excluir('id-a').subscribe(); const del = http.expectOne('/api/beneficiarios/id-a'); expect(del.request.method).toBe('DELETE'); del.flush(null, { status: 204, statusText: 'No Content' });
+  });
+
 });

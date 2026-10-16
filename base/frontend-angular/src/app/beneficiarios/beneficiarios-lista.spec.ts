@@ -101,4 +101,73 @@ describe('BeneficiariosLista', () => {
   it('destroy cancela requisicoes de dados e opcoes pendentes', () => {
     const p = http.expectOne('/api/planos'); const b = requisicao(); fixture.destroy(); expect(p.cancelled).toBeTrue(); expect(b.cancelled).toBeTrue();
   });
+  const acao = (nome: string) => {
+    const b = fixture.nativeElement.querySelector(`button[aria-label="${nome}"]`) as HTMLButtonElement;
+    expect(b).not.toBeNull(); b.click(); fixture.detectChanges();
+  };
+  const detalheServidor = { id: '1', nome_completo: 'Pessoa Persistida', cpf: '52998224725', data_nascimento: '1985-06-24', status: 'ATIVO', plano_id: 'plano-a', data_cadastro: '2026-01-01T00:00:00Z' };
+  const preencherFormulario = (label: string, valor: string) => {
+    const form = fixture.nativeElement.querySelector('app-beneficiario-formulario') as HTMLElement;
+    const l = Array.from(form.querySelectorAll('label')).find(el => el.textContent?.trim() === label)!;
+    const el = form.querySelector('#' + l.htmlFor) as HTMLInputElement;
+    el.value = valor; el.dispatchEvent(new Event(el.tagName === 'SELECT' ? 'change' : 'input', { bubbles: true })); fixture.detectChanges();
+  };
+  const submeter = () => { fixture.nativeElement.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })); fixture.detectChanges(); };
+  it('edicao le detalhe fresco e reabre dados persistidos apos PUT e refresh', () => {
+    opcoes(); responder(requisicao()); acao('Editar Pessoa 1');
+    const detalhe = http.expectOne('/api/beneficiarios/1'); expect(detalhe.request.method).toBe('GET'); detalhe.flush(detalheServidor); fixture.detectChanges(); opcoes();
+    expect((fixture.nativeElement.querySelector('app-beneficiario-formulario input') as HTMLInputElement).value).toBe('Pessoa Persistida');
+    preencherFormulario('Nome completo', 'Nome Atualizado'); submeter();
+    const put = http.expectOne('/api/beneficiarios/1'); expect(put.request.method).toBe('PUT'); expect(put.request.body.nome_completo).toBe('Nome Atualizado'); put.flush({ ...detalheServidor, nome_completo: 'Nome Atualizado' }); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('app-beneficiario-formulario')).toBeNull();
+    responder(requisicao(), [{ ...pessoa(1), nome_completo: 'Nome Atualizado' }]); acao('Editar Nome Atualizado');
+    http.expectOne('/api/beneficiarios/1').flush({ ...detalheServidor, nome_completo: 'Nome Atualizado' }); fixture.detectChanges(); opcoes();
+    expect((fixture.nativeElement.querySelector('app-beneficiario-formulario input') as HTMLInputElement).value).toBe('Nome Atualizado');
+  });
+  it('cadastro bem sucedido limpa filtros e recarrega pagina1', () => {
+    opcoes(); responder(requisicao()); selecionar('filtro-status', 'INATIVO'); responder(requisicao(), [], 0);
+    clicar('Novo beneficiário'); opcoes(); preencherFormulario('Nome completo', 'Pessoa Nova'); preencherFormulario('CPF', '52998224725'); preencherFormulario('Data de nascimento', '1990-12-23'); preencherFormulario('Plano do beneficiário', 'plano-a');
+    submeter(); http.expectOne('/api/beneficiarios').flush(detalheServidor, { status: 201, statusText: 'Created' }); fixture.detectChanges();
+    const lista = requisicao(); expect(lista.request.params.get('pagina')).toBe('1'); expect(lista.request.params.has('status')).toBeFalse(); responder(lista, [{ ...pessoa(1), nome_completo: 'Pessoa Nova' }]); expect(texto()).toContain('Pessoa Nova');
+  });
+  it('cancelar exclusao nao envia DELETE e falha mantem linha ate204', () => {
+    opcoes(); responder(requisicao()); acao('Excluir Pessoa 1'); clicar('Cancelar exclusão'); http.expectNone('/api/beneficiarios/1');
+    acao('Excluir Pessoa 1'); clicar('Confirmar exclusão'); const del = http.expectOne('/api/beneficiarios/1'); expect(del.request.method).toBe('DELETE'); expect(texto()).toContain('Pessoa 1');
+    del.flush({ mensagem: 'Exclusão recusada', detalhes: [] }, { status: 500, statusText: 'Erro' }); fixture.detectChanges(); expect(texto()).toContain('Pessoa 1'); expect(texto()).toContain('Exclusão recusada');
+    clicar('Confirmar exclusão'); http.expectOne('/api/beneficiarios/1').flush(null, { status: 204, statusText: 'No Content' }); fixture.detectChanges(); responder(requisicao(), [], 0); expect(texto()).toContain('Nenhum beneficiário encontrado.');
+  });
+  it('excluir ultimo item da ultima pagina refaz pagina valida preservando criterios', () => {
+    opcoes(); responder(requisicao(), [pessoa(1)], 11); selecionar('filtro-status', 'ATIVO'); responder(requisicao(), [pessoa(1)], 11);
+    clicar('Próxima'); responder(requisicao(), [pessoa(11)], 11); acao('Excluir Pessoa 11'); clicar('Confirmar exclusão'); http.expectOne('/api/beneficiarios/11').flush(null, { status: 204, statusText: 'No Content' }); fixture.detectChanges();
+    const atual = requisicao(); expect(atual.request.params.get('pagina')).toBe('2'); responder(atual, [], 10);
+    const volta = requisicao(); expect(volta.request.params.get('pagina')).toBe('1'); expect(volta.request.params.get('status')).toBe('ATIVO'); responder(volta, [pessoa(1)], 10); expect(texto()).toContain('Página 1 de 1');
+  });
+  it('detalhe404 avisa sem abrir formulario e permite nova tentativa', () => {
+    opcoes(); responder(requisicao()); acao('Editar Pessoa 1'); http.expectOne('/api/beneficiarios/1').flush({ mensagem: 'Não encontrado', detalhes: [] }, { status: 404, statusText: 'Not Found' }); fixture.detectChanges();
+    expect(texto()).toContain('Não encontrado'); expect(fixture.nativeElement.querySelector('form')).toBeNull(); acao('Editar Pessoa 1'); http.expectOne('/api/beneficiarios/1').flush(detalheServidor); fixture.detectChanges(); opcoes(); expect(fixture.nativeElement.querySelector('form')).not.toBeNull();
+  });
+
+  it('mudanca concorrente de plano atualiza linha antes de reutilizar nome historico', () => {
+    opcoes(); responder(requisicao(), [pessoa(1, 'Plano Antigo')]); acao('Editar Pessoa 1');
+    const fresco = { ...detalheServidor, plano_id: 'plano-removido' };
+    http.expectOne('/api/beneficiarios/1').flush(fresco); fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('form')).toBeNull();
+    responder(requisicao(), [{ ...pessoa(1, 'Plano Histórico Correto'), plano_id: 'plano-removido' }]);
+    acao('Editar Pessoa 1'); http.expectOne('/api/beneficiarios/1').flush(fresco); fixture.detectChanges(); opcoes();
+    const form = fixture.nativeElement.querySelector('app-beneficiario-formulario') as HTMLElement;
+    expect(form.textContent).toContain('Plano Histórico Correto'); expect(form.textContent).not.toContain('Plano Antigo');
+    expect((form.querySelector('#beneficiario-plano') as HTMLSelectElement).value).toBe('plano-removido');
+  });
+
+  it('detalhe pendente impede operacao concorrente e cancela no destroy', () => {
+    opcoes(); responder(requisicao()); acao('Editar Pessoa 1'); const req = http.expectOne('/api/beneficiarios/1');
+    acao('Editar Pessoa 1'); http.expectNone('/api/beneficiarios/1'); expect(botao('Novo beneficiário').disabled).toBeTrue();
+    fixture.destroy(); expect(req.cancelled).toBeTrue();
+  });
+  it('DELETE pendente bloqueia confirmacao duplicada e cancela no destroy', () => {
+    opcoes(); responder(requisicao()); acao('Excluir Pessoa 1'); clicar('Confirmar exclusão'); const req = http.expectOne('/api/beneficiarios/1');
+    clicar('Confirmar exclusão'); http.expectNone('/api/beneficiarios/1'); expect(botao('Cancelar exclusão').disabled).toBeTrue(); expect(texto()).toContain('Pessoa 1');
+    fixture.destroy(); expect(req.cancelled).toBeTrue();
+  });
+
 });

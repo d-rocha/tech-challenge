@@ -131,3 +131,14 @@ th {
     flex-basis: 100%;
   }
 }
+
+.acoes-linha {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.confirmacao {
+  margin-top: 0.5rem;
+  min-width: 180px;
+}
