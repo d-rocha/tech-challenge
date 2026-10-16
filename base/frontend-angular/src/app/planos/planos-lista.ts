@@ -1,5 +1,5 @@
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 
 import { mensagemDeErro } from '../nucleo/api';
@@ -13,6 +13,7 @@ import { PlanoServico } from './plano-servico';
 })
 export class PlanosLista {
   private readonly servico = inject(PlanoServico);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly planos = signal<Plano[]>([]);
   protected readonly carregando = signal(true);
@@ -30,7 +31,7 @@ export class PlanosLista {
     // Sem isso, navegar entre rotas vaza subscription.
     this.servico
       .listar()
-      .pipe(takeUntilDestroyed())
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (planos) => {
           this.planos.set(planos);
