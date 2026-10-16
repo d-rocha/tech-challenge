@@ -1,3 +1,4 @@
+using Desafio.Api.Api.Contratos;
 using Desafio.Api.Dominio;
 using Desafio.Api.Infraestrutura;
 using Microsoft.EntityFrameworkCore;
@@ -7,6 +8,38 @@ namespace Desafio.Api.Aplicacao;
 
 public class BeneficiarioServico(AppDbContext db)
 {
+    public async Task<BeneficiariosPaginadosResponse> ListarAsync(
+        BeneficiarioListagemDados dados, CancellationToken cancellationToken)
+    {
+        // IgnoreQueryFilters no join histórico afeta a consulta inteira no EF Core.
+        // Mantemos a exclusão de beneficiários explícita também na projeção paginada.
+        var consulta = db.Beneficiarios.AsNoTracking().Where(b => b.ExcluidoEm == null);
+        if (dados.Status is not null)
+            consulta = consulta.Where(b => b.Status == dados.Status.Value);
+        if (dados.PlanoId is not null)
+            consulta = consulta.Where(b => b.PlanoId == dados.PlanoId.Value);
+
+        var total = await consulta.CountAsync(cancellationToken);
+        var deslocamento = ((long)dados.Pagina - 1) * dados.Tamanho;
+        if (deslocamento >= total)
+            return new BeneficiariosPaginadosResponse([], dados.Pagina, dados.Tamanho, total);
+
+        var itens = await consulta
+            .Join(db.Planos.IgnoreQueryFilters().AsNoTracking(),
+                b => b.PlanoId, plano => plano.Id, (b, plano) => new { Beneficiario = b, Plano = plano })
+            .OrderBy(item => item.Beneficiario.NomeCompleto)
+            .ThenBy(item => item.Beneficiario.Id)
+            .Skip((int)deslocamento)
+            .Take(dados.Tamanho)
+            .Select(item => new BeneficiarioListagemResponse(
+                item.Beneficiario.Id, item.Beneficiario.NomeCompleto, item.Beneficiario.Cpf,
+                item.Beneficiario.DataNascimento, item.Beneficiario.Status, item.Beneficiario.PlanoId,
+                item.Beneficiario.DataCadastro, item.Plano.Nome))
+            .ToListAsync(cancellationToken);
+
+        return new BeneficiariosPaginadosResponse(itens, dados.Pagina, dados.Tamanho, total);
+    }
+
     public async Task<Beneficiario> ObterAsync(Guid id, CancellationToken cancellationToken)
     {
         return await db.Beneficiarios.FirstOrDefaultAsync(b => b.Id == id, cancellationToken)
@@ -108,3 +141,9 @@ public sealed record BeneficiarioAtualizacaoDados(
     DateOnly? DataNascimento,
     Guid? PlanoId,
     string? Status);
+
+public sealed record BeneficiarioListagemDados(
+    int Pagina,
+    int Tamanho,
+    StatusBeneficiario? Status,
+    Guid? PlanoId);

@@ -1,8 +1,6 @@
 using Desafio.Api.Api.Contratos;
 using Desafio.Api.Aplicacao;
-using Desafio.Api.Infraestrutura;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.EntityFrameworkCore;
 
 namespace Desafio.Api.Controllers;
 
@@ -11,12 +9,10 @@ namespace Desafio.Api.Controllers;
 [Produces("application/json")]
 public class BeneficiariosController : ControllerBase
 {
-    private readonly AppDbContext _db;
     private readonly BeneficiarioServico _servico;
 
-    public BeneficiariosController(AppDbContext db, BeneficiarioServico servico)
+    public BeneficiariosController(BeneficiarioServico servico)
     {
-        _db = db;
         _servico = servico;
     }
 
@@ -74,18 +70,13 @@ public class BeneficiariosController : ControllerBase
     }
 
     [HttpGet]
-    public async Task<IActionResult> Listar()
+    [ProducesResponseType<BeneficiariosPaginadosResponse>(StatusCodes.Status200OK)]
+    [ProducesResponseType<ErroResponse>(StatusCodes.Status400BadRequest)]
+    public async Task<IActionResult> Listar(
+        [FromQuery] BeneficiarioListagemRequest requisicao,
+        CancellationToken cancellationToken)
     {
-        var lista = await _db.Beneficiarios.ToListAsync();
-
-        // O plano é resolvido aqui, e não na consulta principal, porque o FindAsync usa o
-        // cache do contexto: a listagem continua fazendo uma única ida ao banco, qualquer
-        // que seja o tamanho da página.
-        foreach (var b in lista)
-        {
-            b.Plano = await _db.Planos.FindAsync(b.PlanoId);
-        }
-
-        return Ok(lista);
+        var dados = requisicao.Validar();
+        return Ok(await _servico.ListarAsync(dados, cancellationToken));
     }
 }
