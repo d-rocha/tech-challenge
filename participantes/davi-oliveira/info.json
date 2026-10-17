@@ -1,0 +1,12 @@
+{
+  "identificador": "davi-oliveira",
+  "nome": "Davi Oliveira",
+  "email": "dr.oliveira88@gmail.com",
+  "imagem_api": "nxtdoor/desafio-4tech-api:1.0.0",
+  "imagem_web": "nxtdoor/desafio-4tech-web:1.0.0",
+  "stack": [
+    "dotnet-10",
+    "postgres-17",
+    "angular-20"
+  ]
+}

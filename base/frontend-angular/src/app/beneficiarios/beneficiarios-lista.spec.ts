@@ -170,4 +170,11 @@ describe('BeneficiariosLista', () => {
     fixture.destroy(); expect(req.cancelled).toBeTrue();
   });
 
+  it('renderiza nome nao confiavel da API como texto literal', () => {
+    opcoes(); const nome = '<img src=x onerror=alert(1)><script>alert(1)</script>';
+    responder(requisicao(), [{ ...pessoa(1), nome_completo: nome }]);
+    expect(texto()).toContain(nome);
+    expect(fixture.nativeElement.querySelector('img, script')).toBeNull();
+  });
+
 });

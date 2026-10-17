@@ -1,5 +1,7 @@
 import { test, expect, expectRecord, api, bronze, prata, cadastro, cpf, create, updateData, open, fill, save, row, restart } from './helpers';
 
+const maskCpf = (value: string) => value.replace(/^(\d{3})(\d{3})(\d{3})(\d{2})$/, '$1.$2.$3-$4');
+
 test('fresh migrations, fixed seed, Swagger and restart preserve data and deleted plan', async ({ page }) => {
   expect(await api('/health')).toEqual({ status: 'ok', banco: 'ok' });
   const expected = [
@@ -80,7 +82,7 @@ test('UI CRUD persists exact payloads, immutable CPF, freeze and reactivation', 
 
 for (const scenario of ['invalid CPF 400', 'duplicate CPF 409', 'deleted plan after form open 422'] as const) {
   test(`real ${scenario} is visible and preserves input`, async ({ page }) => {
-    const data = cadastro(`Erro Real QA ${scenario.slice(-3)}`);
+    const data = cadastro(scenario.startsWith('invalid') ? 'Erro Real CPF Invalido QA' : scenario.startsWith('duplicate') ? 'Erro Real CPF Duplicado QA' : 'Erro Real Plano Removido QA');
     let status: number;
     if (scenario.startsWith('duplicate')) {
       await api('/beneficiarios', 'POST', data, 201);
@@ -99,7 +101,7 @@ for (const scenario of ['invalid CPF 400', 'duplicate CPF 409', 'deleted plan af
     expect(error.detalhes.length).toBeGreaterThan(0);
     await expect(page.getByRole('alert')).toContainText(error.detalhes[0].campo);
     await expect(page.getByLabel('Nome completo', { exact: true })).toHaveValue(data.nome_completo);
-    await expect(page.getByLabel('CPF', { exact: true })).toHaveValue(data.cpf);
+    await expect(page.getByLabel('CPF', { exact: true })).toHaveValue(maskCpf(data.cpf));
     await expect(page.getByLabel('Data de nascimento', { exact: true })).toHaveValue(data.data_nascimento);
     await expect(page.getByLabel('Plano do beneficiário', { exact: true })).toHaveValue(data.plano_id);
     await expect(page.getByRole('button', { name: 'Salvar', exact: true })).toBeEnabled();
@@ -225,4 +227,59 @@ test('delete cancel sends nothing; synthetic DELETE500 retains row; retry204 per
   await api('/beneficiarios', 'POST', cadastro('CPF Continua Reservado QA', bronze, target.cpf), 409);
   expect((await api('/beneficiarios')).total).toBe(10);
   expect(deletes).toEqual([`http://localhost:9999/beneficiarios/${target.id}`, `http://localhost:9999/beneficiarios/${target.id}`]);
+});
+
+
+test('CPF mask keyboard edits and Unicode name validation preserve raw POST payload', async ({ page }, testInfo) => {
+  await open(page);
+  await page.getByRole('button', { name: 'Novo beneficiário', exact: true }).click();
+  const data = cadastro('José O’Neill-Sá');
+  await fill(page, data);
+  const identifier = page.getByLabel('CPF', { exact: true });
+  await expect(identifier).toHaveAttribute('placeholder', '000.000.000-00');
+  await identifier.fill('ab529.982.247-25xyz999');
+  await expect(identifier).toHaveValue('529.982.247-25');
+  await identifier.press('Home');
+  for (let index = 0; index < 4; index++) await identifier.press('ArrowRight');
+  await identifier.press('Backspace');
+  await expect(identifier).toHaveValue('529.822.472-5');
+  expect(await identifier.evaluate((input: HTMLInputElement) => input.selectionStart)).toBe(2);
+  await identifier.fill('52998224725');
+  await identifier.press('Home');
+  for (let index = 0; index < 3; index++) await identifier.press('ArrowRight');
+  await identifier.press('Delete');
+  await expect(identifier).toHaveValue('529.822.472-5');
+  expect(await identifier.evaluate((input: HTMLInputElement) => input.selectionStart)).toBe(3);
+  await identifier.fill('52998224725');
+  await identifier.press('Home');
+  for (let index = 0; index < 3; index++) await identifier.press('Shift+ArrowRight');
+  await page.keyboard.insertText('123');
+  await expect(identifier).toHaveValue('123.982.247-25');
+  expect(await identifier.evaluate((input: HTMLInputElement) => input.selectionStart)).toBe(3);
+  const writes: string[] = [];
+  page.on('request', request => {
+    if (['POST', 'PUT'].includes(request.method()) && request.url().includes('/beneficiarios')) writes.push(request.method());
+  });
+  await identifier.fill('12');
+  await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+  await expect(identifier).toHaveAttribute('aria-invalid', 'true');
+  expect(writes).toEqual([]);
+  await identifier.fill(maskCpf(data.cpf));
+  const name = page.getByLabel('Nome completo', { exact: true });
+  for (const invalid of ['<script>alert(1)</script>', '<img src=x onerror=alert(1)>', 'javascript:alert(1)', 'expression(alert(1))']) {
+    await name.fill(invalid);
+    await page.getByRole('button', { name: 'Salvar', exact: true }).click();
+    await expect(name).toHaveAttribute('aria-invalid', 'true');
+    await expect(name).toHaveValue(invalid);
+    await expect(page.locator('#erro-nome')).toContainText('Use letras');
+    expect(writes).toEqual([]);
+  }
+  await name.fill(data.nome_completo);
+  await expect(identifier).toHaveValue(maskCpf(data.cpf));
+  await page.screenshot({ path: testInfo.outputPath('input-mask-unicode-name.png'), fullPage: true });
+  const response = await save(page, 'POST', 201, data);
+  const person = await response.json();
+  expect(writes).toEqual(['POST']);
+  expectRecord(await api(`/beneficiarios/${person.id}`), person);
+  await expect(row(page, data.nome_completo)).toBeVisible();
 });

@@ -22,16 +22,24 @@
     <div class="campos">
       <div class="campo">
         <label for="beneficiario-nome">Nome completo</label>
-        <input id="beneficiario-nome" formControlName="nome_completo" autocomplete="name" aria-describedby="erro-nome" required>
+        <input id="beneficiario-nome" formControlName="nome_completo" autocomplete="name" placeholder="Ex.: Maria da Silva" aria-describedby="erro-nome" [attr.aria-invalid]="formulario.controls.nome_completo.touched && formulario.controls.nome_completo.invalid" required>
         @if (formulario.controls.nome_completo.touched && formulario.controls.nome_completo.invalid) {
-          <span id="erro-nome" class="erro">Informe o nome completo obrigatório.</span>
+          <span id="erro-nome" class="erro">
+            @if (formulario.controls.nome_completo.hasError('required')) {
+              Informe o nome completo obrigatório.
+            } @else if (formulario.controls.nome_completo.hasError('comprimento')) {
+              Informe um nome com 3 a 120 caracteres.
+            } @else {
+              Use letras, espaços, apóstrofos, hífens e pontos no nome.
+            }
+          </span>
         }
       </div>
       <div class="campo">
         <label for="beneficiario-cpf">CPF</label>
-        <input id="beneficiario-cpf" formControlName="cpf" inputmode="numeric" [readOnly]="!!beneficiario" aria-describedby="erro-cpf" required>
+        <input id="beneficiario-cpf" formControlName="cpf" appCpfMascara inputmode="numeric" placeholder="000.000.000-00" [attr.aria-invalid]="formulario.controls.cpf.touched && formulario.controls.cpf.invalid" [readOnly]="!!beneficiario" aria-describedby="erro-cpf" required>
         @if (formulario.controls.cpf.touched && formulario.controls.cpf.invalid) {
-          <span id="erro-cpf" class="erro">Informe o CPF com exatamente 11 dígitos, sem máscara.</span>
+          <span id="erro-cpf" class="erro">Informe o CPF com exatamente 11 dígitos.</span>
         }
       </div>
       <div class="campo">

@@ -1,0 +1,42 @@
+# Tags propostas para entrega; publicação e pull público ainda pendentes.
+services:
+  api:
+    image: nxtdoor/desafio-4tech-api:1.0.0
+    platform: linux/amd64
+    ports:
+      - "9999:8080"
+    environment:
+      ConnectionStrings__Postgres: "Host=postgres;Port=5432;Database=desafio;Username=desafio;Password=desafio"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  web:
+    image: nxtdoor/desafio-4tech-web:1.0.0
+    platform: linux/amd64
+    ports:
+      - "4200:80"
+    depends_on:
+      api:
+        condition: service_started
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:17-alpine
+    platform: linux/amd64
+    environment:
+      POSTGRES_DB: desafio
+      POSTGRES_USER: desafio
+      POSTGRES_PASSWORD: desafio
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U desafio -d desafio"]
+      interval: 3s
+      timeout: 3s
+      retries: 15
+    restart: unless-stopped
+
+volumes:
+  postgres-data:

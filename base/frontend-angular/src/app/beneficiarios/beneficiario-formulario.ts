@@ -8,9 +8,14 @@ import { Plano } from '../planos/plano';
 import { PlanoServico } from '../planos/plano-servico';
 import { BeneficiarioDetalhe } from './beneficiario';
 import { BeneficiarioServico } from './beneficiario-servico';
+import { CpfMascara } from './cpf-mascara';
 
-function nomeObrigatorio(controle: AbstractControl<string>): ValidationErrors | null {
-  return controle.value.trim() ? null : { required: true };
+function nomePessoal(controle: AbstractControl<string>): ValidationErrors | null {
+  const nome = controle.value.trim();
+  if (!nome) return { required: true };
+  if (nome.length < 3 || nome.length > 120) return { comprimento: true };
+  return /^[\p{L}\p{M} .’'\-]+$/u.test(nome) && /\p{L}/u.test(nome)
+    ? null : { caracteres: true };
 }
 
 function nascimentoPassado(controle: AbstractControl<string>): ValidationErrors | null {
@@ -24,7 +29,7 @@ function nascimentoPassado(controle: AbstractControl<string>): ValidationErrors 
 
 @Component({
   selector: 'app-beneficiario-formulario',
-  imports: [ReactiveFormsModule],
+  imports: [ReactiveFormsModule, CpfMascara],
   templateUrl: './beneficiario-formulario.html',
   styleUrl: './beneficiario-formulario.css'
 })
@@ -45,7 +50,7 @@ export class BeneficiarioFormulario implements OnInit {
   protected readonly planoHistorico = computed(() => !!this.beneficiario &&
     !this.planos().some(plano => plano.id === this.beneficiario!.plano_id));
   protected readonly formulario = new FormGroup({
-    nome_completo: new FormControl('', { nonNullable: true, validators: [nomeObrigatorio] }),
+    nome_completo: new FormControl('', { nonNullable: true, validators: [nomePessoal] }),
     cpf: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.pattern(/^[0-9]{11}$/)] }),
     data_nascimento: new FormControl('', { nonNullable: true, validators: [Validators.required, nascimentoPassado] }),
     plano_id: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
